@@ -1,14 +1,17 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>xbox_joy</name>
+  <name>ee_teleop</name>
   <version>0.0.1</version>
-  <description>Xbox controller joystick reader for ROS 2</description>
+  <description>End-effector teleop frontend for SO101</description>
   <maintainer email="e22e@todo.todo">e22e</maintainer>
   <license>MIT</license>
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>gamepad_msgs</depend>
   <depend>joy</depend>
 
   <export>

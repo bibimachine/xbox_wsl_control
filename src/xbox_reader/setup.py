@@ -2,7 +2,7 @@ import os
 from glob import glob
 from setuptools import setup
 
-package_name = 'xbox_joy'
+package_name = 'xbox_reader'
 
 setup(
     name=package_name,
@@ -22,7 +22,7 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': [
-            'joy_reader = xbox_joy.joy_reader:main',
+            'joy_reader = xbox_reader.joy_reader:main',
         ],
     },
 )

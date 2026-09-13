@@ -1,0 +1,18 @@
+ee_teleop:
+  ros__parameters:
+    publish_rate: 30.0        # 控制/发布频率 (Hz)
+    deadzone: 0.1             # 摇杆死区
+    v_max_xy: 0.1             # 摇杆满偏线速度 (m/s)
+    v_max_z: 0.05             # 按钮 Z 向速度 (m/s)
+    omega_max: 0.6            # 按钮旋转角速度 (rad/s)
+    wz_sign: -1.0             # Y 键旋转方向符号（-1 = 从 +Z 俯视顺时针为负）
+    alpha: 0.3                # EMA 滤波系数
+    accel_max: 0.5            # 线加速度限幅 (m/s^2)
+    angular_accel_max: 2.0    # 角加速度限幅 (rad/s^2)
+    joy_timeout: 0.3          # 看门狗超时 (s)
+    base_frame: 'base_link'   # 输出 TwistStamped 的 frame_id
+    enable_gripper: true      # 是否发夹爪指令
+    gripper_open_value: 0.1   # 夹爪开指令值（effort 量纲，见 README）
+    gripper_close_value: -0.1 # 夹爪合指令值
+    vel_epsilon: 0.002        # 输出端微死区：线速度低于此值直接置 0，截断 EMA 衰减尾巴 (m/s)
+    omega_epsilon: 0.01       # 输出端微死区：角速度低于此值直接置 0 (rad/s)

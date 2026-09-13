@@ -15,6 +15,6 @@ def generate_launch_description():
             package='joy', executable='joy_node', name='joy_node',
             parameters=[{'device_name': dev}]),
         Node(
-            package='xbox_joy', executable='joy_reader', name='joy_reader',
+            package='xbox_reader', executable='joy_reader', name='joy_reader',
             output='screen'),
     ])
