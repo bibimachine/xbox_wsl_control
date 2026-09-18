@@ -27,6 +27,6 @@ def generate_launch_description():
             output='screen'),
         Node(
             package='ee_teleop', executable='ee_teleop', name='ee_teleop',
-            parameters=[config_file],
+            parameters=[config_file, {'use_sim_time': True}],
             output='screen'),
     ])

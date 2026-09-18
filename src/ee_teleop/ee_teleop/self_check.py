@@ -1,7 +1,9 @@
+import math
 import sys
 import time
 
 import rclpy
+from control_msgs.msg import JointJog
 from gamepad_msgs.msg import GamepadState
 from geometry_msgs.msg import TwistStamped
 from rclpy.node import Node
@@ -32,9 +34,18 @@ class SelfCheck(Node):
         self.create_subscription(
             TwistStamped, '/ee_teleop/twist', self.twist_callback, 50)
         self.create_subscription(
+            JointJog, '/servo_node/delta_joint_cmds', self.joint_jog_callback, 50)
+        self.create_subscription(
             Float64MultiArray, '/so101_gripper_controller/commands',
             self.gripper_callback, 10)
-        self._twist_samples = []   # (t, vx, vy, vz, wz)
+        from rcl_interfaces.srv import GetParameters
+        self._om_cli = self.create_client(GetParameters, '/ee_teleop/get_parameters')
+        self._om_req = GetParameters.Request(names=['omega_max'])
+        self._om_future = None
+        if self._om_cli.wait_for_service(timeout_sec=2.0):
+            self._om_future = self._om_cli.call_async(self._om_req)
+        self._twist_samples = []   # (t, vx, vy, vz, wx, wy, wz)
+        self._joint_samples = []   # (t, wrist_roll 速度)
         self._gripper_msgs = []    # (t, data0)
         self._t0 = time.monotonic()
         self.results = []
@@ -47,7 +58,12 @@ class SelfCheck(Node):
     def twist_callback(self, msg: TwistStamped):
         v = msg.twist
         self._twist_samples.append(
-            (self._now(), v.linear.x, v.linear.y, v.linear.z, v.angular.z))
+            (self._now(), v.linear.x, v.linear.y, v.linear.z,
+             v.angular.x, v.angular.y, v.angular.z))
+
+    def joint_jog_callback(self, msg: JointJog):
+        if msg.joint_names == ['wrist_roll'] and msg.velocities:
+            self._joint_samples.append((self._now(), msg.velocities[0]))
 
     def gripper_callback(self, msg: Float64MultiArray):
         if msg.data:
@@ -75,6 +91,9 @@ class SelfCheck(Node):
 
     def _twists(self, t_a, t_b):
         return [s for s in self._twist_samples if t_a <= s[0] < t_b]
+
+    def _joints(self, t_a, t_b):
+        return [s for s in self._joint_samples if t_a <= s[0] < t_b]
 
     def _check(self, name, ok, detail=''):
         self.results.append((name, ok))
@@ -106,14 +125,26 @@ class SelfCheck(Node):
         vz = max((x[3] for x in s), default=0.0)
         s = self._twists(3.7, 3.95)
         vz_ab = max((abs(x[3]) for x in s), default=1.0)
-        self._check('4 A 升 vz≈+0.05，A+B 同按 vz≈0',
-                    0.04 <= vz <= 0.06 and vz_ab < 0.01,
+        self._check('4 A 升 vz≈+0.1，A+B 同按 vz≈0',
+                    0.09 <= vz <= 0.11 and vz_ab < 0.01,
                     f'A: {vz:.4f}, A+B: |vz|max={vz_ab:.5f}')
 
-        s = self._twists(4.5, 4.75)
-        wz = min((x[4] for x in s), default=0.0)
-        self._check('5 Y 按住 angular.z≈-0.6', -0.62 <= wz <= -0.58,
-                    f'wz={wz:.4f}')
+        # Y 键走 JointJog 通道: wrist_roll 速度模≈omega_max(从参数读, 默认1.5), 同时 Twist 的 angular 恒为 0
+        om = 1.5
+        if self._om_future.done():
+            try:
+                resp = self._om_future.result()
+                if resp.values and resp.values[0].type_ == 3:  # PARAMETER_DOUBLE
+                    om = resp.values[0].double_value
+            except Exception:
+                pass
+        s = self._joints(4.5, 4.75)
+        w = max((abs(x[1]) for x in s), default=0.0)
+        s_t = self._twists(4.5, 4.75)
+        twist_ang = max((abs(v) for x in s_t for v in x[4:]), default=0.0)
+        self._check(f'5 Y 按住 JointJog wrist_roll |w|≈{om} 且 Twist 角速度为 0',
+                    0.85 * om <= w <= 1.05 * om and twist_ang < 1e-6,
+                    f'|w|={w:.4f}, twist |ang|max={twist_ang:.2e}')
 
         g = [m for m in self._gripper_msgs if 4.8 <= m[0] < 5.7]
         signs_ok = (len(g) == 2 and g[0][1] * g[1][1] < 0
