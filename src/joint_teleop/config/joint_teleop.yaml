@@ -1,0 +1,21 @@
+joint_teleop:
+  ros__parameters:
+    publish_rate: 100.0       # 控制/发布频率 (Hz)，与 Servo/JTC 同频，避免命令量化台阶
+    deadzone: 0.05            # 摇杆死区
+    omega_max: 1.5            # 摇杆满偏关节速度 (rad/s)，嫌慢继续加，URDF 上限 10
+    alpha: 0.12               # EMA 滤波系数；100Hz 下 ≈80ms 时间常数，改频率要同步换算
+    angular_accel_max: 2.0    # 角加速度限幅 (rad/s^2)
+    joy_timeout: 0.3          # 看门狗超时 (s)
+    base_frame: 'base_link'   # 输出 JointJog 的 frame_id
+    arm_joints:               # RB/LB 循环切换的遥操关节（夹爪不在此列，走 X 键）
+      - shoulder_pan
+      - shoulder_lift
+      - elbow_flex
+      - wrist_flex
+      - wrist_roll
+    joint_signs: [1.0, 1.0, 1.0, 1.0, 1.0]  # 与 arm_joints 对齐：哪个关节手感反了就把对应项改 -1.0
+    joint_command_topic: '/servo_node/delta_joint_cmds'  # Servo 的 JointJog 输入话题
+    enable_gripper: true      # 是否发夹爪指令
+    gripper_open_value: 0.1   # 夹爪开指令值（effort 量纲，见 README）
+    gripper_close_value: -0.1 # 夹爪合指令值
+    omega_epsilon: 0.01       # 输出端微死区：角速度低于此值直接置 0，截断 EMA 衰减尾巴 (rad/s)
